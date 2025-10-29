@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.env
+.venv/
+.mypy_cache/
+
+# Node
+node_modules/
+.next/
+.dist/
+.env.local
+.env.development
+.env.production
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editors/OS
+.DS_Store
+.idea/
+.vscode/
+.devcontainer/*.log
+
+# Data
+postgres-data/
+redis-data/
+minio-data/
+tests.db
