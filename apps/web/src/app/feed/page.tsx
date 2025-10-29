@@ -50,6 +50,11 @@ export default function FeedPage() {
     onSuccess: () => feedQuery.refetch(),
   });
 
+  const trackMutation = useMutation({
+    mutationFn: async (jobId: string) =>
+      postJson("/applications/", { job_posting_id: jobId }, { userId }),
+  });
+
   const items = feedQuery.data?.items ?? [];
 
   return (
@@ -135,6 +140,14 @@ export default function FeedPage() {
               >
                 View role
               </a>
+              <button
+                type="button"
+                onClick={() => trackMutation.mutate(job.id)}
+                disabled={trackMutation.isPending}
+                className="rounded-full border border-slate-700 px-4 py-2 text-xs font-medium text-slate-300 transition hover:border-emerald-400 hover:text-emerald-300"
+              >
+                {trackMutation.isPending ? "Tracking…" : "Track"}
+              </button>
               <button
                 type="button"
                 onClick={() => hideMutation.mutate(job.id)}

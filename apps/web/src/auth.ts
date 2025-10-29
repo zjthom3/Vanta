@@ -22,8 +22,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!parsed.success) {
           return null;
         }
+        const apiUrl =
+        process.env.API_INTERNAL_URL ??
+        process.env.NEXT_PUBLIC_API_URL ??
+        "http://localhost:8000";
 
-        const response = await fetch(`${API_URL}/auth/dev-login`, {
+        const response = await fetch(`${apiUrl}/auth/dev-login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -99,6 +99,14 @@ export default function OnboardingPage() {
 
   const showSubmit = stepIndex === steps.length - 1;
 
+  const resumeSections = (resumePreview.data?.sections ?? undefined) as Record<string, unknown> | undefined;
+  const resumeSummary =
+    resumeSections && typeof resumeSections["summary"] === "string" ? (resumeSections["summary"] as string) : null;
+  const resumeExperience =
+    resumeSections && Array.isArray(resumeSections["experience"])
+      ? (resumeSections["experience"] as string[])
+      : null;
+
   const handleNext = () => {
     if (!userId) {
       return;
@@ -385,18 +393,18 @@ export default function OnboardingPage() {
                       {resumePreview.isFetching ? "Loading..." : submissionComplete ? "Ready" : "Pending"}
                     </span>
                   </div>
-                  {resumePreview.data?.sections && Object.keys(resumePreview.data.sections).length > 0 ? (
+                  {resumeSections && Object.keys(resumeSections).length > 0 ? (
                     <div className="mt-3 space-y-2 text-xs text-slate-400">
-                      {resumePreview.data.sections.summary && (
+                      {resumeSummary && (
                         <p>
-                          <span className="font-semibold text-slate-300">Summary:</span> {String(resumePreview.data.sections.summary)}
+                          <span className="font-semibold text-slate-300">Summary:</span> {resumeSummary}
                         </p>
                       )}
-                      {Array.isArray(resumePreview.data.sections.experience) && (
+                      {resumeExperience && (
                         <div>
                           <p className="font-semibold text-slate-300">Experience Highlights</p>
                           <ul className="mt-1 list-disc space-y-1 pl-4">
-                            {(resumePreview.data.sections.experience as string[]).map((item) => (
+                            {resumeExperience.map((item) => (
                               <li key={item}>{item}</li>
                             ))}
                           </ul>

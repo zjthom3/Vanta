@@ -11,6 +11,7 @@ celery_app = Celery(
     include=[
         "apps.workers.tasks.resume",
         "apps.workers.tasks.search",
+        "apps.workers.tasks.scheduler",
     ],
 )
 

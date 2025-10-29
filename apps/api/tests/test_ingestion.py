@@ -37,8 +37,9 @@ def test_upsert_job_postings_creates_and_updates(db_session: Session):
         }
     ]
 
-    inserted = ingestion.upsert_job_postings(db_session, payloads)
-    assert inserted == 1
+    result = ingestion.upsert_job_postings(db_session, payloads)
+    assert result.inserted == 1
+    assert len(result.postings) == 1
 
     posting = db_session.query(JobPosting).filter_by(source=ProviderEnum.GREENHOUSE, source_id="abc").one()
     assert posting.remote_flag is True
@@ -56,8 +57,9 @@ def test_upsert_job_postings_creates_and_updates(db_session: Session):
         }
     ]
 
-    updated = ingestion.upsert_job_postings(db_session, update_payload)
-    assert updated == 0
+    update_result = ingestion.upsert_job_postings(db_session, update_payload)
+    assert update_result.inserted == 0
+    assert len(update_result.postings) == 1
 
     db_session.refresh(posting)
     assert posting.title == "Principal Product Manager"
@@ -66,6 +68,7 @@ def test_upsert_job_postings_creates_and_updates(db_session: Session):
 
 def test_upsert_job_postings_skips_invalid_provider(db_session: Session):
     payload = [{"source": "unknown", "source_id": "1"}]
-    inserted = ingestion.upsert_job_postings(db_session, payload)
-    assert inserted == 0
+    result = ingestion.upsert_job_postings(db_session, payload)
+    assert result.inserted == 0
+    assert result.postings == []
     assert db_session.query(JobPosting).count() == 0

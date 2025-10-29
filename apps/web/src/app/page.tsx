@@ -24,6 +24,16 @@ const quickLinks = [
     description: "Browse new roles pulled from your connected providers.",
   },
   {
+    href: "/notifications",
+    title: "Notifications",
+    description: "Catch up on digests, resume updates, and other agent activity.",
+  },
+  {
+    href: "/resumes",
+    title: "Resumes",
+    description: "Tailor and optimize resumes with ATS insights.",
+  },
+  {
     href: "/health",
     title: "System Health",
     description: "Verify API connectivity and uptime telemetry.",

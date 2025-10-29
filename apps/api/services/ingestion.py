@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Iterable
+from typing import Iterable, List
 
 from loguru import logger
 from sqlalchemy import select
@@ -9,6 +10,12 @@ from sqlalchemy.orm import Session
 
 from apps.api.models import Company, JobPosting
 from apps.api.models.enums import ProviderEnum
+
+
+@dataclass
+class UpsertResult:
+    inserted: int
+    postings: List[JobPosting]
 
 
 def _get_or_create_company(session: Session, payload: dict[str, str | None]) -> Company | None:
@@ -33,8 +40,9 @@ def _get_or_create_company(session: Session, payload: dict[str, str | None]) -> 
     return company
 
 
-def upsert_job_postings(session: Session, normalized_postings: Iterable[dict[str, object]]) -> int:
+def upsert_job_postings(session: Session, normalized_postings: Iterable[dict[str, object]]) -> UpsertResult:
     inserted = 0
+    affected: list[JobPosting] = []
     for payload in normalized_postings:
         source_value = payload.get("source", "greenhouse")
         try:
@@ -58,6 +66,7 @@ def upsert_job_postings(session: Session, normalized_postings: Iterable[dict[str
             metadata = payload.get("metadata_json")
             if isinstance(metadata, dict):
                 posting.normalized_tags = metadata.get("departments")
+            affected.append(posting)
             continue
 
         company = None
@@ -86,6 +95,7 @@ def upsert_job_postings(session: Session, normalized_postings: Iterable[dict[str
 
         session.add(posting)
         inserted += 1
+        affected.append(posting)
 
     session.commit()
-    return inserted
+    return UpsertResult(inserted=inserted, postings=affected)

@@ -1,4 +1,7 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const publicUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const internalUrl = process.env.API_INTERNAL_URL ?? publicUrl;
+const API_URL = typeof window === "undefined" ? internalUrl : publicUrl;
+
 
 export type ApiError = {
   message: string;
@@ -81,6 +84,20 @@ export async function putJson<TBody extends object, TResult>(
 ): Promise<TResult> {
   const response = await fetch(`${API_URL}${path}`, {
     method: "PUT",
+    headers: buildHeaders(options.userId, { "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+    signal: options.signal,
+  });
+  return handleResponse<TResult>(response);
+}
+
+export async function patchJson<TBody extends object, TResult>(
+  path: string,
+  body: TBody,
+  options: RequestOptions = {},
+): Promise<TResult> {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: "PATCH",
     headers: buildHeaders(options.userId, { "Content-Type": "application/json" }),
     body: JSON.stringify(body),
     signal: options.signal,

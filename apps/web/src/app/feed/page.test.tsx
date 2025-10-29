@@ -22,7 +22,7 @@ vi.mock("@/lib/api-client", () => ({
     limit: 20,
     total: 1,
   }),
-  postJson: vi.fn().mockResolvedValue({ status: "hidden" }),
+  postJson: vi.fn().mockResolvedValue({ status: "ok" }),
 }));
 
 const apiClient = await import("@/lib/api-client");
@@ -42,9 +42,12 @@ describe("FeedPage", () => {
     await screen.findByRole("heading", { name: /Engineer/i });
     expect(screen.getByText(/Acme/i)).toBeInTheDocument();
 
+    const trackButton = screen.getByRole("button", { name: /track/i });
+    fireEvent.click(trackButton);
+    await waitFor(() => expect(postJsonMock).toHaveBeenCalledWith("/applications/", { job_posting_id: "1" }, { userId: "user-1" }));
+
     const hideButton = screen.getByRole("button", { name: /hide/i });
     fireEvent.click(hideButton);
-    await waitFor(() => expect(postJsonMock).toHaveBeenCalled());
-    expect(postJsonMock).toHaveBeenCalledWith("/feed/jobs/1/hide", {}, { userId: "user-1" });
+    await waitFor(() => expect(postJsonMock).toHaveBeenCalledWith("/feed/jobs/1/hide", {}, { userId: "user-1" }));
   });
 });

@@ -23,6 +23,7 @@ Refer to `master_plan.md` for comprehensive product, data, and delivery plans.
   - `make lint` — Ruff + Black + Next.js ESLint.
   - `make typecheck` — mypy and TypeScript compiler checks.
 - The backend tests default to an on-disk SQLite database (`tests.db`). You can remove the file after runs; it is git-ignored. To exercise Postgres-specific behavior, set `POSTGRES_URL` before running `pytest`.
+- The job feed (`/feed/jobs`) filters out hidden postings and returns simple pagination metadata for the `/feed` UI; creating an application (`POST /applications`) and moving stages (`PATCH /applications/{id}`) generates follow-up tasks that surface in the `/applications` Kanban view.
 
 ### Authentication (local dev)
 - Sign in to the web app via `/sign-in` with any email address. The web app uses NextAuth Credentials provider and the API issues user IDs via `POST /auth/dev-login`.

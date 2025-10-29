@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
 
+import { getJson } from "@/lib/api-client";
+
 export const metadata: Metadata = {
   title: "System Health • Vanta",
 };
 
 async function fetchHealth(): Promise<{ status: string } | null> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
   try {
-    const res = await fetch(`${apiUrl}/health`, { cache: "no-store" });
-    if (!res.ok) {
-      return null;
-    }
+    const response = await getJson<{ status: string }>("/health", { cache: "no-store" });
 
-    return (await res.json()) as { status: string };
+    return response;
   } catch (error) {
     console.error("Failed to reach API health endpoint", error);
     return null;
