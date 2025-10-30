@@ -16,6 +16,8 @@ vi.mock("@/lib/api-client", () => ({
         remote: true,
         url: "https://example.com",
         tags: ["Engineering"],
+        fit_score: 72,
+        why_fit: "Shares skills: engineering",
       },
     ],
     page: 1,
@@ -41,6 +43,8 @@ describe("FeedPage", () => {
 
     await screen.findByRole("heading", { name: /Engineer/i });
     expect(screen.getByText(/Acme/i)).toBeInTheDocument();
+    expect(screen.getByText(/Fit 72/i)).toBeInTheDocument();
+    expect(screen.getByText(/Why fit:/i)).toBeInTheDocument();
 
     const trackButton = screen.getByRole("button", { name: /track/i });
     fireEvent.click(trackButton);

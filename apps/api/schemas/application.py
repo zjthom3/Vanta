@@ -26,6 +26,15 @@ class TaskSummary(BaseModel):
     completed_at: str | None = None
 
 
+class ApplicationNoteResponse(BaseModel):
+    id: str
+    body: str | None
+    attachment_url: str | None
+    attachment_name: str | None
+    attachment_content_type: str | None = None
+    created_at: str
+
+
 class ApplicationResponse(BaseModel):
     id: str
     title: str
@@ -33,4 +42,5 @@ class ApplicationResponse(BaseModel):
     stage: StageEnum
     url: str | None
     tasks: list[TaskSummary] = []
+    notes_count: int = 0
     created_at: str

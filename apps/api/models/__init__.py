@@ -2,6 +2,7 @@
 
 from apps.api.models.application import Application
 from apps.api.models.audit_log import AuditLog
+from apps.api.models.application_note import ApplicationNote
 from apps.api.models.company import Company
 from apps.api.models.event import Event
 from apps.api.models.integration_account import IntegrationAccount
@@ -21,6 +22,7 @@ from apps.api.models.hidden_posting import HiddenPosting
 
 __all__ = [
     "Application",
+    "ApplicationNote",
     "AuditLog",
     "Company",
     "Event",

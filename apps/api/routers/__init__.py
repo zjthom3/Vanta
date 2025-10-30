@@ -8,6 +8,7 @@ from apps.api.routers import (
     onboarding,
     profiles,
     resumes,
+    tasks,
     search_prefs,
     system,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "onboarding",
     "profiles",
     "resumes",
+    "tasks",
     "search_prefs",
     "system",
 ]

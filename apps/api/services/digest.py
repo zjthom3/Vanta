@@ -34,6 +34,7 @@ def build_daily_digest(session: Session, user_id: str, limit: int = 10) -> Notif
                 "remote": posting.remote_flag,
                 "url": posting.url,
                 "fit_score": enrichment.fit_score,
+                "why_fit": enrichment.rationale,
             }
         )
 

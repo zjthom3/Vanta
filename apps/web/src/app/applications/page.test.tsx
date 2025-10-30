@@ -5,24 +5,40 @@ import { vi } from "vitest";
 
 import ApplicationsPage from "./page";
 
+const getJsonMock = vi.fn();
+const patchJsonMock = vi.fn().mockResolvedValue({});
+const postFormDataMock = vi.fn().mockResolvedValue({});
+
 vi.mock("@/lib/api-client", () => ({
-  getJson: vi.fn().mockResolvedValue([
-    {
-      id: "app-1",
-      title: "Product Designer",
-      company: "Acme",
-      stage: "prospect",
-      url: "https://example.com",
-      tasks: [],
-    },
-  ]),
-  patchJson: vi.fn().mockResolvedValue({}),
+  getJson: (...args: unknown[]) => getJsonMock(...args),
+  patchJson: (...args: unknown[]) => patchJsonMock(...args),
+  postFormData: (...args: unknown[]) => postFormDataMock(...args),
 }));
 
-const api = await import("@/lib/api-client");
-
 describe("ApplicationsPage", () => {
-  it("renders columns and updates stage", async () => {
+  beforeEach(() => {
+    getJsonMock.mockImplementation((path: string) => {
+      if (path === "/applications/") {
+        return Promise.resolve([
+          {
+            id: "app-1",
+            title: "Product Designer",
+            company: "Acme",
+            stage: "prospect",
+            url: "https://example.com/role",
+            notes_count: 0,
+            tasks: [],
+          },
+        ]);
+      }
+      if (path === "/applications/app-1/notes") {
+        return Promise.resolve([]);
+      }
+      return Promise.resolve([]);
+    });
+  });
+
+  it("renders kanban columns and supports note creation", async () => {
     const queryClient = new QueryClient();
 
     render(
@@ -30,13 +46,25 @@ describe("ApplicationsPage", () => {
         <QueryClientProvider client={queryClient}>
           <ApplicationsPage />
         </QueryClientProvider>
-      </SessionProvider>
+      </SessionProvider>,
     );
 
     await screen.findByText(/Product Designer/i);
-    const stageSelect = screen.getByDisplayValue(/Prospect/i) as HTMLSelectElement;
-    fireEvent.change(stageSelect, { target: { value: "applied" } });
+    expect(screen.getByText(/Prospect/i)).toBeInTheDocument();
 
-    await waitFor(() => expect(api.patchJson).toHaveBeenCalledWith("/applications/app-1", { stage: "applied" }, { userId: "user-1" }));
+    fireEvent.click(screen.getByText(/Product Designer/i));
+    await screen.findByText(/Add note/i);
+
+    const textarea = screen.getByPlaceholderText(/Next steps/i);
+    fireEvent.change(textarea, { target: { value: "Reached out to hiring manager" } });
+    fireEvent.submit(screen.getByText(/Save note/i).closest("form") as HTMLFormElement);
+
+    await waitFor(() =>
+      expect(postFormDataMock).toHaveBeenCalledWith(
+        "/applications/app-1/notes",
+        expect.any(FormData),
+        { userId: "user-1" },
+      ),
+    );
   });
 });

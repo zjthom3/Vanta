@@ -15,6 +15,7 @@ from apps.api.models.enums import PlanTierEnum, StatusEnum
 if TYPE_CHECKING:
     from apps.api.models.application import Application
     from apps.api.models.audit_log import AuditLog
+    from apps.api.models.application_note import ApplicationNote
     from apps.api.models.integration_account import IntegrationAccount
     from apps.api.models.model_run import ModelRun
     from apps.api.models.notification import Notification
@@ -59,3 +60,4 @@ class User(Base):
     model_runs: Mapped[list["ModelRun"]] = relationship(back_populates="user")
     user_events: Mapped[list["UserEvent"]] = relationship(back_populates="user")
     audit_logs: Mapped[list["AuditLog"]] = relationship(back_populates="actor")
+    application_notes: Mapped[list["ApplicationNote"]] = relationship(back_populates="author")

@@ -31,3 +31,8 @@ Refer to `master_plan.md` for comprehensive product, data, and delivery plans.
 
 ### Resume uploads (local dev)
 - The API stores uploaded resumes in the S3-compatible bucket configured via `S3_*` env vars. The default Docker Compose stack ships with MinIO; ensure it is running (`docker compose up minio`) before testing uploads.
+
+## Feature Highlights
+- **Pipeline Kanban** – Drag-and-drop applications across stages and capture notes or attachments from the same board (`/applications`).
+- **Task Inbox** – Action follow-ups and prep work with quick complete/defer actions (`/tasks`).
+- **Daily Digest** – Review the latest ranked matches and “why fit” rationales in a dedicated digest view (`/digest`).

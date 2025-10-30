@@ -37,6 +37,8 @@ def test_feed_returns_items(client, db_session: Session):
     data = response.json()
     assert data["total"] == 1
     assert data["items"][0]["title"] == "Engineer"
+    assert "fit_score" in data["items"][0]
+    assert "why_fit" in data["items"][0]
 
 
 def test_feed_hides_hidden_postings(client, db_session: Session):

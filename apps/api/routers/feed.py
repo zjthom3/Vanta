@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from apps.api.deps.auth import get_current_user
 from apps.api.db.session import get_session
 from apps.api.models import HiddenPosting, JobPosting, User
+from apps.api.services import matching
 
 router = APIRouter(prefix="/feed", tags=["feed"])
 
@@ -42,18 +43,23 @@ def job_feed(
     end = start + limit
     items = visible[start:end]
 
-    serialized = [
-        {
-            "id": str(posting.id),
-            "title": posting.title,
-            "company": posting.company.name if posting.company else None,
-            "location": posting.location,
-            "remote": posting.remote_flag,
-            "url": posting.url,
-            "tags": posting.normalized_tags or [],
-        }
-        for posting in items
-    ]
+    serialized = []
+    for posting in items:
+        enrichment = matching.update_posting_enrichment(session, str(user.id), posting)
+        serialized.append(
+            {
+                "id": str(posting.id),
+                "title": posting.title,
+                "company": posting.company.name if posting.company else None,
+                "location": posting.location,
+                "remote": posting.remote_flag,
+                "url": posting.url,
+                "tags": posting.normalized_tags or [],
+                "fit_score": enrichment.fit_score if enrichment else None,
+                "fit_factors": enrichment.fit_factors if enrichment else {},
+                "why_fit": enrichment.rationale,
+            }
+        )
 
     return {
         "items": serialized,

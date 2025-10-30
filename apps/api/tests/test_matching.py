@@ -14,13 +14,16 @@ def test_compute_fit_score_uses_skill_overlap():
         source=ProviderEnum.GREENHOUSE,
         source_id="xyz",
         title="Senior Engineering Manager",
+        url="https://example.com/roles/1",
         normalized_tags=["python", "management"],
         remote_flag=True,
+        jd_clean="Lead Python engineering teams to deliver scalable services.",
     )
 
-    score, factors = matching.compute_fit_score(profile, posting)
-    assert score > 50
-    assert factors["skill_overlap"] > 0
+    result = matching.compute_fit_score(profile, posting)
+    assert result.score > 50
+    assert result.factors["skill_overlap"] > 0
+    assert any("Shares skills" in reason for reason in result.reasons)
 
 
 def test_update_posting_enrichment_persists(db_session: Session):
@@ -41,3 +44,4 @@ def test_update_posting_enrichment_persists(db_session: Session):
     assert enrichment.fit_score > 0
     stored = db_session.query(PostingEnrichment).filter_by(user_id=user.id, job_posting_id=posting.id).one()
     assert stored.fit_factors["skill_overlap"] == 1.0
+    assert stored.rationale is not None

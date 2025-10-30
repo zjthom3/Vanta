@@ -23,6 +23,7 @@ type DigestItem = {
   remote: boolean;
   url: string | null;
   fit_score: number | null;
+  why_fit: string | null;
 };
 
 function resolveTitle(notification: NotificationItem): string {
@@ -161,6 +162,11 @@ export default function NotificationsPage() {
                       </span>
                     )}
                   </div>
+                  {item.why_fit && (
+                    <p className="text-[11px] text-slate-400">
+                      <span className="font-semibold text-slate-300">Why fit:</span> {item.why_fit}
+                    </p>
+                  )}
                   <div className="flex flex-wrap items-center gap-2">
                     {item.url && (
                       <a

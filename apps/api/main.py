@@ -13,6 +13,7 @@ from apps.api.routers import (
     onboarding,
     profiles,
     resumes,
+    tasks,
     search_prefs,
     system,
 )
@@ -41,6 +42,7 @@ app.include_router(notifications.router)
 app.include_router(onboarding.router)
 app.include_router(profiles.router)
 app.include_router(resumes.router)
+app.include_router(tasks.router)
 app.include_router(search_prefs.router)
 
 

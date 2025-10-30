@@ -29,9 +29,19 @@ const quickLinks = [
     description: "Catch up on digests, resume updates, and other agent activity.",
   },
   {
+    href: "/digest",
+    title: "Daily Digest",
+    description: "Review the latest ranked matches from your scheduled search.",
+  },
+  {
     href: "/resumes",
     title: "Resumes",
     description: "Tailor and optimize resumes with ATS insights.",
+  },
+  {
+    href: "/tasks",
+    title: "Task Inbox",
+    description: "Action your follow-ups, prep, and other next steps.",
   },
   {
     href: "/health",

@@ -10,7 +10,12 @@ from sqlalchemy.orm import Session
 from apps.api.deps.auth import get_current_user
 from apps.api.db.session import get_session
 from apps.api.models import Notification, User
-from apps.api.schemas.notification import NotificationReadResponse, NotificationResponse
+from apps.api.schemas.notification import (
+    DailyDigestItem,
+    DailyDigestResponse,
+    NotificationReadResponse,
+    NotificationResponse,
+)
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -70,3 +75,45 @@ def mark_all_notifications_read(
     if updated:
         session.commit()
     return NotificationReadResponse(status="read_all")
+
+
+@router.get("/latest/digest", response_model=DailyDigestResponse)
+def latest_digest(
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> DailyDigestResponse:
+    stmt = (
+        select(Notification)
+        .where(Notification.user_id == user.id, Notification.kind == "daily_digest")
+        .order_by(Notification.created_at.desc())
+        .limit(1)
+    )
+    notification = session.scalars(stmt).first()
+    if notification is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No digest available")
+
+    payload = notification.payload or {}
+    generated_raw = payload.get("generated_at")
+    try:
+        generated_at = datetime.fromisoformat(generated_raw) if generated_raw else None
+    except Exception:  # pragma: no cover - defensive
+        generated_at = None
+    generated_at = generated_at or notification.created_at
+
+    items_payload = payload.get("items") or []
+    items: list[DailyDigestItem] = []
+    for raw_item in items_payload:
+        items.append(
+            DailyDigestItem(
+                job_id=str(raw_item.get("job_id")),
+                title=raw_item.get("title") or "Untitled role",
+                company=raw_item.get("company"),
+                location=raw_item.get("location"),
+                remote=bool(raw_item.get("remote")),
+                url=raw_item.get("url"),
+                fit_score=raw_item.get("fit_score"),
+                why_fit=raw_item.get("why_fit"),
+            )
+        )
+
+    return DailyDigestResponse(generated_at=generated_at, items=items)

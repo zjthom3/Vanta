@@ -1,23 +1,25 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 from http import HTTPStatus
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.api.deps.auth import get_current_user
 from apps.api.db.session import get_session
-from apps.api.models import Application, JobPosting, User
+from apps.api.models import Application, ApplicationNote, AuditLog, JobPosting, User
 from apps.api.models.enums import StageEnum
 from apps.api.schemas.application import (
     ApplicationCreateRequest,
+    ApplicationNoteResponse,
     ApplicationResponse,
     ApplicationUpdateRequest,
     TaskSummary,
 )
-from apps.api.services import task_rules
+from apps.api.services import storage, task_rules
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -42,6 +44,7 @@ def _serialize_application(application: Application) -> ApplicationResponse:
         stage=application.stage,
         url=job.url if job else None,
         tasks=tasks,
+        notes_count=len(application.notes),
         created_at=application.created_at.isoformat(),
     )
 
@@ -93,10 +96,92 @@ def update_application(
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Application not found")
 
     if application.stage != payload.stage:
+        previous_stage = application.stage
         application.stage = payload.stage
+        if payload.stage == StageEnum.APPLIED and application.applied_at is None:
+            application.applied_at = datetime.now(timezone.utc)
         task_rules.handle_stage_change(session, application, payload.stage)
+        log = AuditLog(
+            actor_type="user",
+            actor_id=user.id,
+            action="application.stage_changed",
+            entity="application",
+            entity_id=application.id,
+            diff={"from": previous_stage.value, "to": payload.stage.value},
+        )
+        session.add(log)
 
     session.add(application)
     session.commit()
     session.refresh(application)
     return _serialize_application(application)
+
+
+def _serialize_note(note: ApplicationNote) -> ApplicationNoteResponse:
+    return ApplicationNoteResponse(
+        id=str(note.id),
+        body=note.body,
+        attachment_url=note.attachment_url,
+        attachment_name=note.attachment_name,
+        attachment_content_type=note.attachment_content_type,
+        created_at=note.created_at.isoformat(),
+    )
+
+
+@router.get("/{application_id}/notes", response_model=list[ApplicationNoteResponse])
+def list_application_notes(
+    application_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> list[ApplicationNoteResponse]:
+    application = session.get(Application, application_id)
+    if application is None or application.user_id != user.id:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Application not found")
+
+    notes_stmt = (
+        select(ApplicationNote)
+        .where(ApplicationNote.application_id == application.id)
+        .order_by(ApplicationNote.created_at.desc())
+    )
+    notes = session.scalars(notes_stmt).all()
+    return [_serialize_note(note) for note in notes]
+
+
+@router.post("/{application_id}/notes", response_model=ApplicationNoteResponse, status_code=HTTPStatus.CREATED)
+async def create_application_note(
+    application_id: uuid.UUID,
+    body: str | None = Form(default=None),
+    attachment: UploadFile | None = File(default=None),
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> ApplicationNoteResponse:
+    application = session.get(Application, application_id)
+    if application is None or application.user_id != user.id:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Application not found")
+
+    if (body is None or not body.strip()) and attachment is None:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Provide note text or an attachment")
+
+    attachment_url = None
+    attachment_name = None
+    attachment_content_type = None
+    if attachment is not None:
+        filename = attachment.filename or "attachment"
+        key = f"applications/{application_id}/notes/{uuid.uuid4()}-{filename}"
+        attachment.file.seek(0)
+        attachment_url = storage.upload_stream(key, attachment.file, attachment.content_type)
+        attachment_name = filename
+        attachment_content_type = attachment.content_type
+
+    note = ApplicationNote(
+        application_id=application.id,
+        user_id=user.id,
+        body=body.strip() if body and body.strip() else None,
+        attachment_url=attachment_url,
+        attachment_name=attachment_name,
+        attachment_content_type=attachment_content_type,
+    )
+    session.add(note)
+    session.commit()
+    session.refresh(note)
+    return _serialize_note(note)

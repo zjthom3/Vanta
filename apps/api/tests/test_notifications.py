@@ -70,3 +70,34 @@ def test_mark_all_notifications_read(client, db_session: Session):
     assert unread.read_at is not None
     # previously read notifications remain read (timestamp untouched beyond existing value)
     assert read.read_at is not None
+
+
+def test_latest_digest_endpoint_returns_latest(client, db_session: Session):
+    user = _seed_user(db_session)
+    digest_notification = Notification(
+        user_id=user.id,
+        kind="daily_digest",
+        payload={
+            "generated_at": datetime.now(UTC).isoformat(),
+            "items": [
+                {
+                    "job_id": "123",
+                    "title": "Data Engineer",
+                    "company": "Acme",
+                    "location": "Remote",
+                    "remote": True,
+                    "url": "https://example.com/123",
+                    "fit_score": 82,
+                    "why_fit": "Shares skills: python",
+                }
+            ],
+        },
+    )
+    db_session.add(digest_notification)
+    db_session.commit()
+
+    response = client.get("/notifications/latest/digest", headers={"X-User-Id": str(user.id)})
+    assert response.status_code == HTTPStatus.OK
+    body = response.json()
+    assert body["items"][0]["title"] == "Data Engineer"
+    assert body["items"][0]["why_fit"] == "Shares skills: python"

@@ -14,6 +14,9 @@ type FeedItem = {
   remote: boolean;
   url: string;
   tags: string[];
+  fit_score?: number | null;
+  fit_factors?: Record<string, number>;
+  why_fit?: string | null;
 };
 
 type FeedResponse = {
@@ -113,8 +116,15 @@ export default function FeedPage() {
             key={job.id}
             className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-950/30 p-6 md:flex-row md:items-center md:justify-between"
           >
-            <div>
-              <h3 className="text-lg font-semibold text-slate-200">{job.title}</h3>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold text-slate-200">{job.title}</h3>
+                {typeof job.fit_score === "number" && (
+                  <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200">
+                    Fit {job.fit_score}
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-slate-400">
                 {job.company ? `${job.company} • ` : ""}
                 {job.location ?? "Location unknown"}
@@ -128,6 +138,11 @@ export default function FeedPage() {
                     </li>
                   ))}
                 </ul>
+              )}
+              {job.why_fit && (
+                <p className="text-xs text-slate-400">
+                  <span className="font-semibold text-slate-300">Why fit:</span> {job.why_fit}
+                </p>
               )}
             </div>
 

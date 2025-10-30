@@ -15,3 +15,19 @@ class NotificationResponse(BaseModel):
 
 class NotificationReadResponse(BaseModel):
     status: str
+
+
+class DailyDigestItem(BaseModel):
+    job_id: str
+    title: str
+    company: str | None
+    location: str | None
+    remote: bool
+    url: str | None
+    fit_score: int | None = None
+    why_fit: str | None = None
+
+
+class DailyDigestResponse(BaseModel):
+    generated_at: datetime
+    items: list[DailyDigestItem]

@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from apps.api.models.task import Task
     from apps.api.models.user import User
     from apps.api.models.event import Event
+    from apps.api.models.application_note import ApplicationNote
 
 
 class Application(Base):
@@ -51,3 +52,6 @@ class Application(Base):
     outreaches: Mapped[list["Outreach"]] = relationship(back_populates="application")
     tasks: Mapped[list["Task"]] = relationship(back_populates="application")
     events: Mapped[list["Event"]] = relationship(back_populates="application")
+    notes: Mapped[list["ApplicationNote"]] = relationship(
+        back_populates="application", order_by="desc(ApplicationNote.created_at)"
+    )
