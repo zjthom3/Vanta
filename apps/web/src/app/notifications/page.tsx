@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { useSession } from "next-auth/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { getJson, postJson } from "@/lib/api-client";
 
@@ -49,19 +49,50 @@ export default function NotificationsPage() {
     queryFn: async () => getJson<NotificationItem[]>("/notifications", { userId }),
   });
 
+  const [feedback, setFeedback] = useState<{ message: string; tone: "success" | "error" } | null>(null);
+
   const markReadMutation = useMutation({
     mutationFn: async (notificationId: string) =>
       postJson(`/notifications/${notificationId}/read`, {}, { userId }),
     onSuccess: () => notificationsQuery.refetch(),
+    onError: () => setFeedback({ tone: "error", message: "Unable to update that notification right now." }),
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => postJson("/notifications/read-all", {}, { userId }),
+    onSuccess: () => {
+      setFeedback({ tone: "success", message: "All notifications marked as read." });
+      notificationsQuery.refetch();
+    },
+    onError: () => setFeedback({ tone: "error", message: "Unable to mark notifications as read right now." }),
   });
 
   const trackMutation = useMutation({
-    mutationFn: async (jobId: string) =>
+    mutationFn: async ({ jobId }: { jobId: string; notificationId: string }) =>
       postJson("/applications/", { job_posting_id: jobId }, { userId }),
+    onSuccess: (_, variables) => {
+      setFeedback({ tone: "success", message: "Job moved to your pipeline." });
+      if (variables.notificationId) {
+        markReadMutation.mutate(variables.notificationId);
+      } else {
+        notificationsQuery.refetch();
+      }
+    },
+    onError: () => setFeedback({ tone: "error", message: "Could not track that job. Try again." }),
   });
 
   const hideMutation = useMutation({
-    mutationFn: async (jobId: string) => postJson(`/feed/jobs/${jobId}/hide`, {}, { userId }),
+    mutationFn: async ({ jobId }: { jobId: string; notificationId: string }) =>
+      postJson(`/feed/jobs/${jobId}/hide`, {}, { userId }),
+    onSuccess: (_, variables) => {
+      setFeedback({ tone: "success", message: "Job hidden from future feeds." });
+      if (variables.notificationId) {
+        markReadMutation.mutate(variables.notificationId);
+      } else {
+        notificationsQuery.refetch();
+      }
+    },
+    onError: () => setFeedback({ tone: "error", message: "Could not hide that job. Try again." }),
   });
 
   const items = notificationsQuery.data ?? [];
@@ -87,8 +118,16 @@ export default function NotificationsPage() {
     { label: "Resumes", value: "resume", count: items.filter((item) => item.kind.startsWith("resume_")).length },
   ];
 
-  const currentTrackJob = (trackMutation.variables as string | undefined) ?? null;
-  const currentHideJob = (hideMutation.variables as string | undefined) ?? null;
+  const currentTrackJob = (trackMutation.variables as { jobId: string } | undefined)?.jobId ?? null;
+  const currentHideJob = (hideMutation.variables as { jobId: string } | undefined)?.jobId ?? null;
+
+  useEffect(() => {
+    if (!feedback) {
+      return;
+    }
+    const id = window.setTimeout(() => setFeedback(null), 4000);
+    return () => window.clearTimeout(id);
+  }, [feedback]);
 
   const renderContent = (notification: NotificationItem) => {
     const payload = notification.payload ?? {};
@@ -139,7 +178,7 @@ export default function NotificationsPage() {
                           type="button"
                           className="rounded-full border border-slate-700 px-3 py-1 text-[11px] text-slate-300 transition hover:border-emerald-400 hover:text-emerald-300 disabled:cursor-default disabled:opacity-60"
                           disabled={tracking || !userId}
-                          onClick={() => trackMutation.mutate(jobId)}
+                          onClick={() => trackMutation.mutate({ jobId, notificationId: notification.id })}
                         >
                           {tracking ? "Tracking…" : "Track"}
                         </button>
@@ -147,7 +186,7 @@ export default function NotificationsPage() {
                           type="button"
                           className="rounded-full border border-slate-700 px-3 py-1 text-[11px] text-slate-300 transition hover:border-rose-400 hover:text-rose-300 disabled:cursor-default disabled:opacity-60"
                           disabled={hiding || !userId}
-                          onClick={() => hideMutation.mutate(jobId)}
+                          onClick={() => hideMutation.mutate({ jobId, notificationId: notification.id })}
                         >
                           {hiding ? "Hiding…" : "Hide"}
                         </button>
@@ -207,6 +246,25 @@ export default function NotificationsPage() {
         </p>
       </header>
 
+      {feedback && (
+        <div
+          className={`flex items-center justify-between gap-4 rounded-xl border px-4 py-3 text-xs ${
+            feedback.tone === "success"
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+              : "border-rose-500/40 bg-rose-500/10 text-rose-200"
+          }`}
+        >
+          <span>{feedback.message}</span>
+          <button
+            type="button"
+            onClick={() => setFeedback(null)}
+            className="rounded-full border border-current px-2 py-1 text-[11px] transition hover:bg-current/10"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         {filterOptions.map((option) => (
           <button
@@ -229,6 +287,14 @@ export default function NotificationsPage() {
             </span>
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => markAllReadMutation.mutate()}
+          disabled={markAllReadMutation.isPending || items.length === 0}
+          className="ml-auto rounded-full border border-slate-700 px-4 py-2 text-xs font-medium text-slate-300 transition hover:border-accent hover:text-accent disabled:cursor-default disabled:opacity-60"
+        >
+          {markAllReadMutation.isPending ? "Marking…" : "Mark all as read"}
+        </button>
       </div>
 
       {notificationsQuery.isLoading ? (

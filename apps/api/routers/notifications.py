@@ -54,3 +54,19 @@ def mark_notification_read(
         session.commit()
 
     return NotificationReadResponse(status="read")
+
+
+@router.post("/read-all", response_model=NotificationReadResponse)
+def mark_all_notifications_read(
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> NotificationReadResponse:
+    now = datetime.now(timezone.utc)
+    stmt = select(Notification).where(Notification.user_id == user.id, Notification.read_at.is_(None))
+    updated = False
+    for notification in session.scalars(stmt):
+        notification.read_at = now
+        updated = True
+    if updated:
+        session.commit()
+    return NotificationReadResponse(status="read_all")

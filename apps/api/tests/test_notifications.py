@@ -52,3 +52,21 @@ def test_mark_notification_read_sets_timestamp(client, db_session: Session):
 
     db_session.refresh(notification)
     assert notification.read_at is not None
+
+
+def test_mark_all_notifications_read(client, db_session: Session):
+    user = _seed_user(db_session)
+    unread = Notification(user_id=user.id, kind="resume_tailored", payload={"resume_id": "abc"})
+    read = Notification(user_id=user.id, kind="resume_optimized", payload={}, read_at=datetime.now(UTC))
+    db_session.add_all([unread, read])
+    db_session.commit()
+
+    response = client.post("/notifications/read-all", headers={"X-User-Id": str(user.id)})
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()["status"] == "read_all"
+
+    db_session.refresh(unread)
+    db_session.refresh(read)
+    assert unread.read_at is not None
+    # previously read notifications remain read (timestamp untouched beyond existing value)
+    assert read.read_at is not None
